@@ -36,3 +36,19 @@ def print_model_mae(model, train_X, val_X, train_y, val_y):
     mae = mean_absolute_error(preds_val, val_y)
     print(f'Model Mean Average Error (MAE): {mae:.0f}')
     return mae
+
+
+def get_forest_mae(n_estimators):
+    """Return the average MAE over 3 CV folds of random forest model.
+
+    Keyword argument:
+    n_estimators -- the number of trees in the forest
+    """
+    my_pipeline = Pipeline(steps=[
+        ('preprocessor', SimpleImputer()),
+        ('model', RandomForestRegressor(n_estimators, random_state=0))
+    ])
+    scores = -1 * cross_val_score(my_pipeline, X, y,
+                                  cv=3,
+                                  scoring='neg_mean_absolute_error')
+    return scores.mean()
