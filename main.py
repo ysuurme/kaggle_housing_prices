@@ -32,6 +32,8 @@ df_test = pd.read_csv(fileName_test)
 """
 Data Preprocessing
 """
+
+
 # Missing values
 def print_na(df):
     """Loop that prints count of missing values for each dataframe feature"""
@@ -46,7 +48,7 @@ print_na(df_train)
 
 
 def save_fig(fig, folder, filename):
-    "Function saves fig to specified folder with specified filename"
+    """Function saves fig to specified folder with specified filename"""
     os.makedirs(folder, exist_ok=True)
     filepath = os.path.join(folder, filename)
     fig.savefig(filepath)
@@ -84,7 +86,25 @@ def df_na(df, plot=True):
     return df_isna
 
 
-df_isna = df_na(df_train)
+df_train_isna = df_na(df_train)
+
+# Target distribution
+fig, ax = plt.subplots(figsize=(10, 10))
+sns.histplot(x="SalePrice", data=df_train, kde=True, element="step", bins=20, ax=ax)
+ax.set_title(f'Histogram target feature: Sales Price in USD')
+ax.set_xlabel("Sales Price in USD")
+ax.set_ylabel('Real estate count')
+
+save_fig(fig, "Figures", "Hist_target_distribution.png")
+
+print(df_train["SalePrice"].describe(percentiles=[.05, .25, .5, .75, .95]))
+
+
+
+
+
+
+
 
 # Select Data:
 # num_features = ['Rooms', 'Distance', 'Landsize', 'BuildingArea', 'YearBuilt']
@@ -98,7 +118,7 @@ num_cols = [cname for cname in X_train.columns if X_train[cname].dtype in ['int6
 
 # Select categorical columns
 cat_cols = [cname for cname in X_train.columns if X_train[cname].nunique() < 10 and
-                        X_train[cname].dtype == "object"]
+            X_train[cname].dtype == "object"]
 
 cols = num_cols + cat_cols
 X_train = X_train[cols].copy()
@@ -120,17 +140,6 @@ gb_model.fit(X_train, y_train)
 predictions = gb_model.predict(X_valid)
 print("Mean Absolute Error: " + str(mean_absolute_error(predictions, y_valid)))
 
-
-
-
-
-
-
-
-
-
-
-
 """ 
 Pipelines
 """
@@ -148,12 +157,12 @@ num_transformer = SimpleImputer(strategy='mean')
 preprocessor = ColumnTransformer(
     transformers=[
         ('num', num_transformer, num_features)
-#         ('cat', categorical_transformer, categorical_cols)
+        #         ('cat', categorical_transformer, categorical_cols)
     ])
 
 # Define model
 forest_model = RandomForestRegressor(n_estimators=50, random_state=1)
-gb_model = GradientBoostingClassifier()  #todo n_iter_no_change + learning rate + n_jobs(PC Cores)
+gb_model = GradientBoostingClassifier()  # todo n_iter_no_change + learning rate + n_jobs(PC Cores)
 
 model = gb_model
 
@@ -190,7 +199,8 @@ How could you dig into the data to see which explanation is more plausible?
 """
 
 # Clean the Data:
-df_data_cleaned = df_data.dropna(axis=0)  # Dropping rows for which features have missing values todo Significant Data Loss
+df_data_cleaned = df_data.dropna(
+    axis=0)  # Dropping rows for which features have missing values todo Significant Data Loss
 df_train_cleaned = df_train.dropna(axis=0, subset=['SalePrice'])
 df_train_cleaned = df_train_cleaned.select_dtypes(exclude=['object'])
 
@@ -243,17 +253,17 @@ df_predict['PricePredicted_Tree'] = price_predictTree.tolist()
 df_predict['PricePredicted_Forest'] = price_predictForest.tolist()
 
 df_predict['Error_Tree'] = df_predict['Price'] - df_predict['PricePredicted_Tree']
-df_predict['Error_Tree_Norm'] = np.sqrt(df_predict['Error_Tree']**2)
+df_predict['Error_Tree_Norm'] = np.sqrt(df_predict['Error_Tree'] ** 2)
 
 df_predict['Error_Forest'] = df_predict['Price'] - df_predict['PricePredicted_Forest']
-df_predict['Error_Forest_Norm'] = np.sqrt(df_predict['Error_Forest']**2)
+df_predict['Error_Forest_Norm'] = np.sqrt(df_predict['Error_Forest'] ** 2)
 
 # Evaluate Decision Tree:
 housingPrice_modelTree_mae = mean_absolute_error(price_predictTree, val_y)
 print(f'Housing Price Decision Tree MAE: USD {housingPrice_modelTree_mae:.0f} should equal:'
       f' USD {df_predict.Error_Tree_Norm.mean():.0f}')
 
-leaf_nodes = [2**p for p in range(1, 11)]
+leaf_nodes = [2 ** p for p in range(1, 11)]
 print_tree_mae([52], train_X, val_X, train_y, val_y)
 node_fit = min_tree_mae(leaf_nodes, train_X, val_X, train_y, val_y)
 
