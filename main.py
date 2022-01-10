@@ -1,7 +1,10 @@
+# Packages
+import os
+import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import datetime
+import seaborn as sns
 
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingClassifier
@@ -15,18 +18,73 @@ from sklearn.model_selection import cross_val_score
 
 from functions.functions import *
 
+sns.set_style("whitegrid")
 
-# Load Data:
+# Source Data:
 fileName_train = 'sourceData/IowaHousing_Train.csv'
 df_train = pd.read_csv(fileName_train)
-fileName_data = 'sourceData/MelbourneHousing_Data.csv'
-df_data = pd.read_csv(fileName_data)
+fileName_test = 'sourceData/IowaHousing_Test.csv'
+df_test = pd.read_csv(fileName_test)
 
-# Understand the Data:
-# df_train.describe()
-# df_train.info()
-# df_data.columns
-missing_val_count_by_column(df_train)
+# fileName_melbourne = 'sourceData/MelbourneHousing_Data.csv'
+# df_melbourne = pd.read_csv(fileName_data)
+
+"""
+Data Preprocessing
+"""
+# Missing values
+def print_na(df):
+    """Loop that prints count of missing values for each dataframe feature"""
+    print(f'Dataframe shape: {df.shape}', end='\n\n')
+    if df.isnull().values.any() == False:
+        print('Dataframe contains no missing values!')
+    col_missing_values = (df.isnull().sum()).sort_values(ascending=False)
+    print(f'DataFrame feature # missing values: \n{col_missing_values[col_missing_values > 0]}')
+
+
+print_na(df_train)
+
+
+def save_fig(fig, folder, filename):
+    "Function saves fig to specified folder with specified filename"
+    os.makedirs(folder, exist_ok=True)
+    filepath = os.path.join(folder, filename)
+    fig.savefig(filepath)
+    print(f'Figure saved: {filepath}')
+
+
+def color_indices(x, palette_name):
+    """Function returns indices which may be used in 'palette' for similar values to retrieve similar colors"""
+    normalized = (x - min(x)) / (max(x) - min(x))  # normalize the values to range [0, 1]
+    indices = np.round(normalized * (len(x) - 1)).astype(np.int32)  # rank values based on index (same value same rank)
+    palette = sns.color_palette(palette_name, len(x))  # create series of palette colors
+    return np.array(palette).take(~indices, axis=0)  # assign color based on inverted rank (high value is positive)
+
+
+def plot_na(df, folder='figures'):
+    """Plot horizontal barchart indicating feature missing value percentage"""
+    fig, ax = plt.subplots(figsize=(20, 20))
+    sns.barplot(ax=ax, data=df, x='non_null_perc', y='feature', orient='h',
+                palette=color_indices(df['non_null_perc'], "coolwarm"))
+    ax.set_title("Percentage of available values per feature")
+
+    filename = str(f'Barplot_non_null_perc.png')
+    save_fig(fig, folder, filename)
+
+
+def df_na(df, plot=True):
+    rows = len(df)
+    df_isna = pd.DataFrame(df.isna().sum(), columns=['na_count']).rename_axis('feature').reset_index()
+    df_isna['na_perc'] = df_isna['na_count'] / rows
+    df_isna['non_null_perc'] = 1 - df_isna['na_perc']
+    df_isna.sort_values(by=['non_null_perc'], ascending=False, inplace=True)
+
+    if plot:
+        plot_na(df_isna)
+    return df_isna
+
+
+df_isna = df_na(df_train)
 
 # Select Data:
 # num_features = ['Rooms', 'Distance', 'Landsize', 'BuildingArea', 'YearBuilt']
